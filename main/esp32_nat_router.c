@@ -68,6 +68,7 @@
 #include "syslog_client.h"
 #include "oled_display.h"
 #include "led_strip_status.h"
+#include "sd_logger.h"
 #if !defined(CONFIG_IDF_TARGET_ESP32C5)
 #include "mdns.h"
 #endif
@@ -1258,6 +1259,7 @@ void app_main(void)
 {
     initialize_nvs();
     load_log_level();  // Apply saved log level early
+    sd_logger_init();  // Initialize MicroSD logging early (non-blocking)
 
     /* Restore timezone from NVS */
     {

@@ -1,0 +1,44 @@
+menu "SD Card Logger Configuration"
+
+    config SD_LOGGER_ENABLED
+        bool "Enable SD Card Logger"
+        default y
+        help
+            Enable asynchronous MicroSD card logging.
+
+    config SD_LOGGER_MOSI_PIN
+        int "MOSI GPIO Pin"
+        default 23
+        depends on SD_LOGGER_ENABLED
+        help
+            GPIO pin for SPI MOSI (Data Output from ESP32). Default: 23.
+
+    config SD_LOGGER_MISO_PIN
+        int "MISO GPIO Pin"
+        default 19
+        depends on SD_LOGGER_ENABLED
+        help
+            GPIO pin for SPI MISO (Data Input to ESP32). Default: 19.
+
+    config SD_LOGGER_CLK_PIN
+        int "SCK/CLK GPIO Pin"
+        default 18
+        depends on SD_LOGGER_ENABLED
+        help
+            GPIO pin for SPI Clock. Default: 18.
+
+    config SD_LOGGER_CS_PIN
+        int "CS GPIO Pin"
+        default 5
+        depends on SD_LOGGER_ENABLED
+        help
+            GPIO pin for SPI Chip Select (CS). Default: 5.
+
+    config SD_LOGGER_MAX_FILE_SIZE_KB
+        int "Maximum log file size before rotation (KB)"
+        default 1024
+        depends on SD_LOGGER_ENABLED
+        help
+            Log file will be rotated (router.log -> router.log.old) when it reaches this size.
+
+endmenu
