@@ -54,6 +54,10 @@
 | **수정** | `components/cmd_router/cmd_router.c` | 시리얼 콘솔 명령어 `set_vpn_enroll <0\|1> [-u <url>] [-t <token>]` 추가 |
 | **수정** | `components/http_server/CMakeLists.txt` | `${CMAKE_SOURCE_DIR}/include` 추가로 `vpn_enroll.h` 참조 가능 |
 | **수정** | `components/http_server/http_server.c` | 웹 UI의 VPN 설정 페이지에 자동 등록 상태/기기 공개키 표시, 모드 선택(Manual/Auto) 및 토큰 입력 폼 추가 |
+| **신규** | `server/wg_enroll.py` | 오라클 서버용 WireGuard 자동 등록 REST API & 웹 관리자 대시보드 데몬 |
+| **신규** | `server/install.sh` | 오라클 서버 1-Click 설치 스크립트 |
+| **신규** | `server/wg-enroll.service` | systemd 백그라운드 서비스 등록 파일 |
+| **신규** | `server/README.md` | 오라클 서버 설치 및 명령어 운영 가이드 |
 
 ---
 
