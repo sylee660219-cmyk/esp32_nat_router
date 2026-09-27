@@ -69,6 +69,7 @@
 #include "oled_display.h"
 #include "led_strip_status.h"
 #include "sd_logger.h"
+#include "vpn_enroll.h"
 #if !defined(CONFIG_IDF_TARGET_ESP32C5)
 #include "mdns.h"
 #endif
@@ -135,6 +136,12 @@ bool vpn_connected = false;
 uint32_t vpn_tunnel_ip = 0;         // Cached VPN tunnel IP (network byte order)
 int32_t vpn_killswitch = 1;         // Kill switch default on
 int32_t vpn_route_all = 1;          // Route all traffic through VPN (default on)
+
+// WireGuard Auto-Enrollment settings (Oracle wg-enroll server integration)
+int32_t vpn_auto_enroll = 0;        // 0=manual config, 1=auto enrollment
+char* vpn_enroll_url = NULL;        // Enrollment server URL (e.g. "https://168.110.106.47:8443")
+char* vpn_enroll_token = NULL;      // Enrollment Bearer token
+char* vpn_device_pubkey = NULL;     // Device WireGuard public key (base64)
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t wifi_event_group;
@@ -461,7 +468,7 @@ static void eth_event_handler(void* arg, esp_event_base_t event_base,
 
         init_sntp_if_needed();
         syslog_notify_connected();
-        if (vpn_enabled) {
+        if (vpn_enabled || vpn_auto_enroll) {
             vpn_connect_task_start();
         }
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_BIT);
@@ -727,8 +734,8 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,
         // Re-resolve syslog server now that network is up
         syslog_notify_connected();
 
-        // Start VPN connection if enabled
-        if (vpn_enabled) {
+        // Start VPN connection if enabled or auto-enroll active
+        if (vpn_enabled || vpn_auto_enroll) {
             vpn_connect_task_start();
         }
 
@@ -1555,6 +1562,39 @@ void app_main(void)
     if (get_config_param_int("vpn_rall", &vpn_rall_setting) == ESP_OK) {
         vpn_route_all = (int32_t)vpn_rall_setting;
     }
+
+    // Auto-Enrollment settings
+#ifndef CONFIG_VPN_AUTO_ENROLL_DEFAULT
+#define CONFIG_VPN_AUTO_ENROLL_DEFAULT 0
+#endif
+#ifndef CONFIG_VPN_ENROLL_URL_DEFAULT
+#define CONFIG_VPN_ENROLL_URL_DEFAULT DEFAULT_ENROLL_URL
+#endif
+#ifndef CONFIG_VPN_ENROLL_TOKEN_DEFAULT
+#define CONFIG_VPN_ENROLL_TOKEN_DEFAULT ""
+#endif
+
+    int vpn_enroll_setting = CONFIG_VPN_AUTO_ENROLL_DEFAULT;
+    if (get_config_param_int("vpn_auto_enroll", &vpn_enroll_setting) == ESP_OK) {
+        vpn_auto_enroll = (int32_t)vpn_enroll_setting;
+    } else {
+        vpn_auto_enroll = (int32_t)CONFIG_VPN_AUTO_ENROLL_DEFAULT;
+    }
+    get_config_param_str("vpn_enroll_url", &vpn_enroll_url);
+    if (vpn_enroll_url == NULL || vpn_enroll_url[0] == '\0') {
+        vpn_enroll_url = param_set_default(CONFIG_VPN_ENROLL_URL_DEFAULT);
+    }
+    get_config_param_str("vpn_enroll_token", &vpn_enroll_token);
+    if (vpn_enroll_token == NULL || vpn_enroll_token[0] == '\0') {
+        vpn_enroll_token = param_set_default(CONFIG_VPN_ENROLL_TOKEN_DEFAULT);
+    }
+    get_config_param_str("vpn_dev_pubkey", &vpn_device_pubkey);
+    if (vpn_device_pubkey == NULL) vpn_device_pubkey = param_set_default("");
+
+    if (vpn_auto_enroll) {
+        vpn_enroll_ensure_device_key();
+    }
+
     // Cache VPN subnet for kill switch packet filtering
     if (vpn_address && vpn_address[0]) {
         ip_addr_t addr, mask;
@@ -1565,7 +1605,7 @@ void app_main(void)
         }
     }
     // Pre-set MSS/PMTU when VPN is enabled (before WiFi connects)
-    if (vpn_enabled) {
+    if (vpn_enabled || vpn_auto_enroll) {
         ap_mss_clamp = 1380;
         ap_pmtu = 1440;
         ESP_LOGI(TAG, "VPN enabled, MSS=1380 PMTU=1440 pre-set");

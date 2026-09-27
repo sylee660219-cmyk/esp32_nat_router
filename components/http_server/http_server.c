@@ -40,6 +40,7 @@
 #include "favicon_png.h"
 #include "router_globals.h"
 #include "vpn_config.h"
+#include "vpn_enroll.h"
 #include "pcap_capture.h"
 #include "acl.h"
 #include "remote_console.h"
@@ -3560,6 +3561,18 @@ static esp_err_t vpn_get_handler(httpd_req_t *req)
                     if (httpd_query_key_value(buf, "vpn_rall", param, sizeof(param)) == ESP_OK) {
                         nvs_set_i32(nvs, "vpn_rall", atoi(param));
                     }
+                    if (httpd_query_key_value(buf, "vpn_auto_enroll", param, sizeof(param)) == ESP_OK) {
+                        nvs_set_i32(nvs, "vpn_auto_enroll", atoi(param));
+                    }
+                    if (httpd_query_key_value(buf, "vpn_enroll_url", param, sizeof(param)) == ESP_OK) {
+                        preprocess_string(param);
+                        nvs_set_str(nvs, "vpn_enroll_url", param);
+                    }
+                    if (httpd_query_key_value(buf, "vpn_enroll_token", param, sizeof(param)) == ESP_OK) {
+                        preprocess_string(param);
+                        if (param[0] != '\0')
+                            nvs_set_str(nvs, "vpn_enroll_token", param);
+                    }
 
                     nvs_commit(nvs);
                     nvs_close(nvs);
@@ -3629,10 +3642,37 @@ static esp_err_t vpn_get_handler(httpd_req_t *req)
              vpn_route_all ? "#4caf50" : "#2196f3", vpn_route_all ? "Yes" : "No (split tunnel)");
     SEND_CHUNK(req, row, HTTPD_RESP_USE_STRLEN);
 
+    if (vpn_auto_enroll) {
+        snprintf(row, VPN_BUF_SIZE, "<tr><td>Auto-Enroll:</td><td><strong style='color:#2196f3;'>%s</strong></td></tr>",
+                 vpn_enroll_get_status());
+        SEND_CHUNK(req, row, HTTPD_RESP_USE_STRLEN);
+    }
+    if (vpn_device_pubkey && vpn_device_pubkey[0]) {
+        snprintf(row, VPN_BUF_SIZE, "<tr><td>Device Key:</td><td><code style='font-size:0.85em;'>%s</code></td></tr>",
+                 vpn_device_pubkey);
+        SEND_CHUNK(req, row, HTTPD_RESP_USE_STRLEN);
+    }
+
     SEND_CHUNK(req, "</table></div>", HTTPD_RESP_USE_STRLEN);
 
     /* Form - streamed field by field to avoid large snprintf */
     SEND_CHUNK(req, VPN_CHUNK_FORM_OPEN, HTTPD_RESP_USE_STRLEN);
+
+    snprintf(row, VPN_BUF_SIZE,
+        "<tr><td>Mode</td><td><select name='vpn_auto_enroll'>"
+        "<option value='0' %s>Manual (수동 설정)</option>"
+        "<option value='1' %s>Auto-Enroll (Oracle 자동 등록)</option>"
+        "</select></td></tr>",
+        vpn_auto_enroll ? "" : "selected", vpn_auto_enroll ? "selected" : "");
+    SEND_CHUNK(req, row, HTTPD_RESP_USE_STRLEN);
+
+    snprintf(row, VPN_BUF_SIZE,
+        "<tr><td>Enroll Server</td><td><input type='text' name='vpn_enroll_url' value='%s' placeholder='%s'/></td></tr>"
+        "<tr><td>Enroll Token</td><td><input type='password' name='vpn_enroll_token' placeholder='%s'/></td></tr>",
+        vpn_enroll_url ? vpn_enroll_url : DEFAULT_ENROLL_URL,
+        DEFAULT_ENROLL_URL,
+        (vpn_enroll_token && vpn_enroll_token[0]) ? "unchanged" : "Bearer Token");
+    SEND_CHUNK(req, row, HTTPD_RESP_USE_STRLEN);
 
     snprintf(row, VPN_BUF_SIZE,
         "<tr><td>Enabled</td><td><select name='vpn_enabled'>"
