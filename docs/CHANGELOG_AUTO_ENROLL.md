@@ -58,6 +58,9 @@
 | **신규** | `server/install.sh` | 오라클 서버 1-Click 설치 스크립트 |
 | **신규** | `server/wg-enroll.service` | systemd 백그라운드 서비스 등록 파일 |
 | **신규** | `server/README.md` | 오라클 서버 설치 및 명령어 운영 가이드 |
+| **수정** | `sdkconfig.defaults` | `CONFIG_LWIP_PPP_SUPPORT=y` 추가 (WireGuard 연결 시 `LoadProhibited` 무한 재부팅 방지) |
+| **수정** | `sdkconfig` | `CONFIG_LWIP_PPP_SUPPORT=y` 활성화 |
+
 
 ---
 
