@@ -1055,11 +1055,11 @@ void wifi_init(const uint8_t* mac, const char* ssid, const char* ent_username, c
         }
     };
 
-    strlcpy((char*)ap_config.sta.ssid, ap_ssid, sizeof(ap_config.sta.ssid));
+    strlcpy((char*)ap_config.ap.ssid, ap_ssid, sizeof(ap_config.ap.ssid));
     if (strlen(ap_passwd) < 8) {
         ap_config.ap.authmode = WIFI_AUTH_OPEN;
     } else {
-	    strlcpy((char*)ap_config.sta.password, ap_passwd, sizeof(ap_config.sta.password));
+        strlcpy((char*)ap_config.ap.password, ap_passwd, sizeof(ap_config.ap.password));
     }
 
     // Always use APSTA mode so WiFi scanning works even without an uplink configured
@@ -1334,7 +1334,7 @@ void app_main(void)
     }
     get_config_param_str("ap_passwd", &ap_passwd);
     if (ap_passwd == NULL) {
-        ap_passwd = param_set_default("");
+        ap_passwd = param_set_default("12345678");
     }
     get_config_param_str("ap_ip", &ap_ip);
     if (ap_ip == NULL) {
