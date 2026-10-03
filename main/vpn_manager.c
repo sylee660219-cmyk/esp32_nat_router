@@ -13,6 +13,7 @@
 #include "freertos/task.h"
 #include "lwip/ip_addr.h"
 #include "vpn_config.h"
+#include "vpn_enroll.h"
 #include "router_config.h"
 #include "portmap.h"
 
@@ -173,7 +174,7 @@ bool vpn_connect_task_start(void)
         return false;
     }
     vpn_connect_pending = true;
-    if (xTaskCreate(vpn_connect_task, "vpn_connect", 4096, NULL, 5, NULL) != pdPASS) {
+    if (xTaskCreate(vpn_connect_task, "vpn_connect", 8192, NULL, 5, NULL) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create VPN connect task");
         vpn_connect_pending = false;
         return false;
@@ -209,6 +210,15 @@ void vpn_connect_task(void *pvParameters)
     } else {
         ESP_LOGW(TAG, "SNTP sync timeout after %ds, proceeding with VPN anyway", max_retry / 2);
     }
+
+    if (vpn_auto_enroll) {
+        ESP_LOGI(TAG, "Auto-enrollment active: requesting tunnel config from Oracle server...");
+        esp_err_t enroll_err = vpn_enroll_request();
+        if (enroll_err != ESP_OK) {
+            ESP_LOGW(TAG, "Auto-enrollment attempt failed (%s)", esp_err_to_name(enroll_err));
+        }
+    }
+
     vpn_connect();
     vpn_connect_pending = false;
     vTaskDelete(NULL);

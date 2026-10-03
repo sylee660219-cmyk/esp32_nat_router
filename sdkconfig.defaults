@@ -38,6 +38,9 @@ CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
 CONFIG_LWIP_L2_TO_L3_COPY=y
 CONFIG_LWIP_IP_FORWARD=y  
 CONFIG_LWIP_IPV4_NAPT=y
+# httpd alone takes 9 (7 clients + listen + ctrl); room for remote_cmd (udp/4210),
+# MQTT, syslog, enrollment client and captive DNS
+CONFIG_LWIP_MAX_SOCKETS=12
 
 # DHCP server
 CONFIG_LWIP_DHCPS_MAX_STATION_NUM=16
@@ -52,3 +55,9 @@ CONFIG_ESP_WIFI_TX_BA_WIN=32
 
 # OTA
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# esp_wireguard creates its netif via raw lwIP netif_add() rather than esp_netif.
+# Enabling CONFIG_LWIP_PPP_SUPPORT=y flips LWIP_ESP_NETIF_DATA to 1 so esp_netif_lwip.c
+# does not cast netif->state to esp_netif_t*, preventing LoadProhibited crash on connect.
+CONFIG_LWIP_PPP_SUPPORT=y
+

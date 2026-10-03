@@ -28,6 +28,12 @@ extern uint32_t vpn_tunnel_ip;      // Cached VPN tunnel IP (network byte order,
 extern int32_t vpn_killswitch;      // Kill switch: block AP client internet when VPN is down (default on)
 extern int32_t vpn_route_all;       // Route all traffic through VPN (1) or only VPN subnet (0, split tunnel)
 
+// WireGuard Auto-Enrollment settings (Oracle wg-enroll server integration)
+extern int32_t vpn_auto_enroll;     // 0=manual config, 1=auto enrollment
+extern char* vpn_enroll_url;        // Enrollment server URL (e.g. "https://168.110.106.47:8443")
+extern char* vpn_enroll_token;      // Enrollment Bearer token
+extern char* vpn_device_pubkey;     // Device WireGuard public key (base64)
+
 // WireGuard VPN functions
 esp_err_t vpn_connect(void);
 void vpn_disconnect(void);

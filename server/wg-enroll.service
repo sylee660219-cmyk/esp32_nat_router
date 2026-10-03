@@ -1,0 +1,15 @@
+[Unit]
+Description=WireGuard enrollment API for ESP32 devices
+# Peers live only in the running interface, so restart together with wg0
+# (the service re-applies all enrolled peers on start).
+After=network-online.target wg-quick@wg0.service
+Requires=wg-quick@wg0.service
+PartOf=wg-quick@wg0.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/wg_enroll.py serve
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target wg-quick@wg0.service

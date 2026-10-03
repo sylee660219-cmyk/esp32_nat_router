@@ -5,6 +5,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdbool.h>
 #include <esp_http_server.h>
 
 #ifdef __cplusplus
@@ -20,6 +21,9 @@ uint8_t web_ui_get_bind(void);
 
 /** Set web UI interface access bitmask. Saves to NVS and takes effect immediately. */
 void web_ui_set_bind(uint8_t bind);
+
+/** True while a firmware upload (/api/ota-upload) is being written. */
+bool http_server_ota_busy(void);
 
 #ifdef __cplusplus
 }

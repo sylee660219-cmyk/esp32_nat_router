@@ -45,6 +45,8 @@
 #include "pcap_capture.h"
 #include "acl.h"
 #include "remote_console.h"
+#include "vpn_config.h"
+#include "vpn_enroll.h"
 /* web UI bind API */
 extern uint8_t web_ui_get_bind(void);
 extern void    web_ui_set_bind(uint8_t bind);
@@ -110,6 +112,7 @@ static void register_scan(void);
 static void register_set_sta_band(void);
 #endif
 static void register_set_vpn(void);
+static void register_set_vpn_enroll(void);
 static void register_set_tz(void);
 
 /* ACL helper functions (forward declarations) */
@@ -459,6 +462,7 @@ void register_router(void)
     register_syslog_cmd();
     register_set_tz();
     register_set_vpn();
+    register_set_vpn_enroll();
 #if defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
     register_set_oled();
     register_set_oled_gpio();
@@ -3865,3 +3869,75 @@ static void register_set_vpn(void)
     };
     ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
 }
+
+/** Arguments used by 'set_vpn_enroll' function */
+static struct {
+    struct arg_int *enable;
+    struct arg_str *url;
+    struct arg_str *token;
+    struct arg_end *end;
+} set_vpn_enroll_args;
+
+static int set_vpn_enroll_cmd(int argc, char **argv)
+{
+    int nerrors = arg_parse(argc, argv, (void **) &set_vpn_enroll_args);
+    if (nerrors != 0) {
+        arg_print_errors(stderr, set_vpn_enroll_args.end, argv[0]);
+        return 1;
+    }
+
+    nvs_handle_t nvs;
+    esp_err_t err = nvs_open(PARAM_NAMESPACE, NVS_READWRITE, &nvs);
+    if (err != ESP_OK) {
+        printf("Failed to open NVS: %s\n", esp_err_to_name(err));
+        return 1;
+    }
+
+    if (set_vpn_enroll_args.enable->count > 0) {
+        int val = set_vpn_enroll_args.enable->ival[0];
+        nvs_set_i32(nvs, "vpn_auto_enroll", val);
+        vpn_auto_enroll = val;
+    }
+    if (set_vpn_enroll_args.url->count > 0) {
+        nvs_set_str(nvs, "vpn_enroll_url", set_vpn_enroll_args.url->sval[0]);
+        if (vpn_enroll_url) free(vpn_enroll_url);
+        vpn_enroll_url = strdup(set_vpn_enroll_args.url->sval[0]);
+    }
+    if (set_vpn_enroll_args.token->count > 0) {
+        nvs_set_str(nvs, "vpn_enroll_token", set_vpn_enroll_args.token->sval[0]);
+        if (vpn_enroll_token) free(vpn_enroll_token);
+        vpn_enroll_token = strdup(set_vpn_enroll_args.token->sval[0]);
+    }
+
+    nvs_commit(nvs);
+    nvs_close(nvs);
+
+    printf("Auto-Enrollment settings saved:\n");
+    printf("  Auto-Enroll: %s\n", vpn_auto_enroll ? "Enabled (1)" : "Disabled (0)");
+    printf("  Server URL : %s\n", vpn_enroll_url ? vpn_enroll_url : "(none)");
+    printf("  Token      : %s\n", (vpn_enroll_token && strlen(vpn_enroll_token) > 0) ? "[configured]" : "(none)");
+    if (vpn_device_pubkey && vpn_device_pubkey[0]) {
+        printf("  Device Key : %s\n", vpn_device_pubkey);
+    }
+    printf("  Status     : %s\n", vpn_enroll_get_status());
+    printf("Restart to apply.\n");
+    return 0;
+}
+
+static void register_set_vpn_enroll(void)
+{
+    set_vpn_enroll_args.enable = arg_int1(NULL, NULL, "<0|1>", "Enable (1) or disable (0) auto-enrollment");
+    set_vpn_enroll_args.url    = arg_str0("u", "url", "<server_url>", "Enrollment server URL (default https://168.110.106.47:8443)");
+    set_vpn_enroll_args.token  = arg_str0("t", "token", "<token>", "Enrollment Bearer token");
+    set_vpn_enroll_args.end    = arg_end(2);
+
+    const esp_console_cmd_t cmd = {
+        .command = "set_vpn_enroll",
+        .help = "Configure WireGuard Auto-Enrollment (Oracle server)",
+        .hint = NULL,
+        .func = &set_vpn_enroll_cmd,
+        .argtable = &set_vpn_enroll_args
+    };
+    ESP_ERROR_CHECK( esp_console_cmd_register(&cmd) );
+}
+

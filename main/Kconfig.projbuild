@@ -74,3 +74,26 @@ menu "MQTT Home Assistant"
         range 5 3600
 
 endmenu
+
+menu "WireGuard Auto-Enrollment (Oracle)"
+
+    config VPN_AUTO_ENROLL_DEFAULT
+        bool "Enable WireGuard Auto-Enrollment by default"
+        default y
+        help
+            Enables automatic enrollment with the Oracle WireGuard server on boot.
+
+    config VPN_ENROLL_URL_DEFAULT
+        string "Enrollment server URL"
+        default "https://168.110.106.47:8443"
+        help
+            Base URL of the enrollment service.
+
+    config VPN_ENROLL_TOKEN_DEFAULT
+        string "Enrollment token"
+        default ""
+        help
+            Bearer token printed by the server. Stored in sdkconfig (not in git).
+            If left empty here, it can also be configured via Web UI or CLI.
+
+endmenu
