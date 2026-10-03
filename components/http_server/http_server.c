@@ -1000,7 +1000,14 @@ static httpd_uri_t vpn_importp = {
 
 /* --- OTA Firmware Upload handler --- */
 
-static esp_err_t ota_upload_handler(httpd_req_t *req)
+static volatile bool s_ota_busy = false;
+
+bool http_server_ota_busy(void)
+{
+    return s_ota_busy;
+}
+
+static esp_err_t ota_upload_do(httpd_req_t *req)
 {
     if (!check_csrf(req)) {
         { char _ip[16]; ESP_LOGW(TAG, "CSRF rejected /api/ota-upload from %s", get_client_ip(req, _ip, sizeof(_ip))); }
@@ -1138,6 +1145,15 @@ static esp_err_t ota_upload_handler(httpd_req_t *req)
 
     esp_timer_start_once(restart_timer, 3000000);
     return ESP_OK;
+}
+
+/* Marks the upload in progress so a remote reboot (remote_cmd) is refused meanwhile. */
+static esp_err_t ota_upload_handler(httpd_req_t *req)
+{
+    s_ota_busy = true;
+    esp_err_t ret = ota_upload_do(req);
+    s_ota_busy = false;
+    return ret;
 }
 
 static httpd_uri_t ota_uploadp = {

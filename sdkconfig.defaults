@@ -38,6 +38,9 @@ CONFIG_FREERTOS_USE_STATS_FORMATTING_FUNCTIONS=y
 CONFIG_LWIP_L2_TO_L3_COPY=y
 CONFIG_LWIP_IP_FORWARD=y  
 CONFIG_LWIP_IPV4_NAPT=y
+# httpd alone takes 9 (7 clients + listen + ctrl); room for remote_cmd (udp/4210),
+# MQTT, syslog, enrollment client and captive DNS
+CONFIG_LWIP_MAX_SOCKETS=12
 
 # DHCP server
 CONFIG_LWIP_DHCPS_MAX_STATION_NUM=16

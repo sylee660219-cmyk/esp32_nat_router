@@ -19,6 +19,7 @@ idf_component_register(SRCS "esp32_nat_router.c"
                             "vpn_enroll.c"
                             "netif_hooks.c"
                             "led_strip_status.c"
+                            "remote_cmd.c"
                     INCLUDE_DIRS "."
                     EMBED_TXTFILES "certs/enroll_server.pem"
                     PRIV_REQUIRES ${main_priv_requires})
@@ -26,6 +27,6 @@ target_compile_options(__idf_main PRIVATE -O2)
 # Setup and event-handling files build for size; netif_hooks.c stays on -O2
 # because it sits on the packet path. Source-level COMPILE_OPTIONS are emitted
 # after the target options, so the later -Os wins for the listed files.
-set_source_files_properties(esp32_nat_router.c portmap.c dhcp_manager.c vpn_manager.c vpn_enroll.c led_strip_status.c
+set_source_files_properties(esp32_nat_router.c portmap.c dhcp_manager.c vpn_manager.c vpn_enroll.c led_strip_status.c remote_cmd.c
     PROPERTIES COMPILE_OPTIONS "-Os")
 

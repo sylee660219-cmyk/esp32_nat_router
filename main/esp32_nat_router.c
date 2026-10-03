@@ -200,6 +200,7 @@ esp_netif_t* wifiSTA;
 #endif
 
 #include "http_server.h"
+#include "remote_cmd.h"
 
 static const char *TAG = "ESP32 NAT router";
 
@@ -1711,6 +1712,10 @@ void app_main(void)
 
     // Initialize syslog client (UDP forwarding, disabled by default)
     syslog_init();
+
+    // Remote reboot from the VPN dashboard (udp/4210), independent of httpd.
+    // Replies only to the WireGuard tunnel subnet once the VPN is up.
+    remote_cmd_start();
 
     // Initialize OLED display (ESP32-S3 defaults to enabled on GPIO17/18)
     oled_display_init();
